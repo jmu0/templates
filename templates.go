@@ -33,6 +33,7 @@ func (t *Template) Load(path string) error {
 
 //render template, return html
 func (t *Template) Render() (string, error) {
+	//TODO: remove unused tags ${{}}
 	var rendered string = t.html
 	if len(t.Data) > 0 {
 		for key, value := range t.Data {
