@@ -45,11 +45,13 @@ func (t *Template) Render() (string, error) {
 }
 
 type TemplateManager struct {
-	templatePath string
+	TemplatePath string
 	Cache        map[string]Template
 }
 
+//preload templates into cache
 func (tm *TemplateManager) Preload(path string) {
+	tm.TemplatePath = path
 	tm.Cache = make(map[string]Template)
 	files, err := ioutil.ReadDir(path)
 	if err != nil {
@@ -69,8 +71,10 @@ func (tm *TemplateManager) Preload(path string) {
 		}
 	}
 }
+
+//get template from cache or load template
 func (tm *TemplateManager) GetTemplate(name string) (Template, error) {
-	path := tm.templatePath + "/" + name + ".html"
+	path := tm.TemplatePath + "/" + name + ".html"
 	if tmpl, ok := tm.Cache[path]; ok {
 		log.Println("template from cache")
 		return tmpl, nil
