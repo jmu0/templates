@@ -5,13 +5,14 @@ import (
 	"errors"
 	"io/ioutil"
 	"log"
+	// "reflect"
 	"strings"
 )
 
 type Template struct {
 	Path string
 	html string
-	Data map[string]string
+	Data map[string]interface{}
 }
 
 //load template html
@@ -36,9 +37,16 @@ func (t *Template) Load(path string) error {
 func (t *Template) Render() (string, error) {
 	//TODO: remove unused tags ${{}}
 	var rendered string = t.html
+	// var arrString string
 	if len(t.Data) > 0 {
 		for key, value := range t.Data {
-			rendered = strings.Replace(rendered, "${{"+key+"}}", value, -1)
+			switch value.(type) {
+			case []interface{}:
+				log.Println("template array!!")
+				//TODO: how to get the template from cache???
+			default:
+				rendered = strings.Replace(rendered, "${{"+key+"}}", value.(string), -1)
+			}
 		}
 	}
 	return rendered, nil
@@ -76,7 +84,10 @@ func (tm *TemplateManager) Preload(path string) {
 func (tm *TemplateManager) GetTemplate(name string) (Template, error) {
 	path := tm.TemplatePath + "/" + name + ".html"
 	if tmpl, ok := tm.Cache[path]; ok {
-		log.Println("template from cache")
+		// log.Println("template from cache")
+		if tmpl.Data == nil {
+			tmpl.Data = make(map[string]interface{})
+		}
 		return tmpl, nil
 	}
 	tmpl := Template{}
@@ -85,6 +96,7 @@ func (tm *TemplateManager) GetTemplate(name string) (Template, error) {
 		log.Println("no template:", err)
 		return tmpl, err
 	}
-	log.Println("new template")
+	tmpl.Data = make(map[string]interface{})
+	// log.Println("new template")
 	return tmpl, nil
 }
