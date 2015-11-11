@@ -2,10 +2,12 @@ package templates
 
 import (
 	// "fmt"
+	"encoding/json"
 	"errors"
 	"io/ioutil"
 	"log"
-	// "reflect"
+	"reflect"
+	"strconv"
 	"strings"
 )
 
@@ -33,28 +35,10 @@ func (t *Template) Load(path string) error {
 	return nil
 }
 
-//render template, return html
-func (t *Template) Render() (string, error) {
-	//TODO: remove unused tags ${{}}
-	var rendered string = t.html
-	// var arrString string
-	if len(t.Data) > 0 {
-		for key, value := range t.Data {
-			switch value.(type) {
-			case []interface{}:
-				log.Println("template array!!")
-				//TODO: how to get the template from cache???
-			default:
-				rendered = strings.Replace(rendered, "${{"+key+"}}", value.(string), -1)
-			}
-		}
-	}
-	return rendered, nil
-}
-
 type TemplateManager struct {
-	TemplatePath string
-	Cache        map[string]Template
+	TemplatePath     string
+	Cache            map[string]Template
+	LocalizationData map[string]map[string]string //TODO: make local
 }
 
 //preload templates into cache
@@ -78,6 +62,60 @@ func (tm *TemplateManager) Preload(path string) {
 			}
 		}
 	}
+}
+
+//load localization strings from json file
+func (tm *TemplateManager) LoadLocalization(path string) error {
+	bytes, err := ioutil.ReadFile(path)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(bytes, &tm.LocalizationData)
+}
+
+//render template, return html
+func (tm *TemplateManager) Render(t *Template, locale string) (string, error) {
+	var rendered string = t.html
+	if len(t.Data) > 0 {
+		for key, value := range t.Data {
+			switch value.(type) {
+			case []interface{}:
+				log.Println("template array!!")
+			case interface{}:
+				switch reflect.TypeOf(value).Name() {
+				case "int":
+					rendered = strings.Replace(rendered, "${{"+key+"}}", strconv.Itoa(value.(int)), -1)
+				default:
+					rendered = strings.Replace(rendered, "${{"+key+"}}", value.(string), -1)
+				}
+			default:
+				rendered = strings.Replace(rendered, "${{"+key+"}}", value.(string), -1)
+			}
+		}
+	}
+	var localizeTag string = "${{localize:"
+	for {
+		if i := strings.Index(rendered, localizeTag); i > -1 {
+			word := rendered[i+12 : i+strings.Index(rendered[i:], "}}")]
+			translated := tm.Translate(word, locale)
+
+			break
+		} else {
+			break
+		}
+	}
+	//TODO: remove unused tags ${}
+	return rendered, nil
+}
+
+//translate word
+func (tm *TemplateManager) Translate(word string, locale string) string {
+	if _, ok := tm.LocalizationData[locale]; ok {
+		if tr, ok := tm.LocalizationData[locale][word]; ok {
+			return tr
+		}
+	}
+	return word
 }
 
 //get template from cache or load template
