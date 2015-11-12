@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"log"
 	"reflect"
+	"regexp"
 	"strconv"
 	"strings"
 )
@@ -16,6 +17,10 @@ type Template struct {
 	html string
 	Data map[string]interface{}
 }
+
+var localizeTag string = "${{localize:"
+var tagPre string = "${{"
+var tagPost string = "}}"
 
 //load template html
 func (t *Template) Load(path string) error {
@@ -38,7 +43,7 @@ func (t *Template) Load(path string) error {
 type TemplateManager struct {
 	TemplatePath     string
 	Cache            map[string]Template
-	LocalizationData map[string]map[string]string //TODO: make local
+	LocalizationData map[string]map[string]string //TODO: make this variable local only
 }
 
 //preload templates into cache
@@ -77,34 +82,50 @@ func (tm *TemplateManager) LoadLocalization(path string) error {
 func (tm *TemplateManager) Render(t *Template, locale string) (string, error) {
 	var rendered string = t.html
 	if len(t.Data) > 0 {
+		//Replace ${{}} tags with data values
 		for key, value := range t.Data {
 			switch value.(type) {
 			case []interface{}:
-				log.Println("template array!!")
+				log.Println("Template array:", key)
 			case interface{}:
 				switch reflect.TypeOf(value).Name() {
 				case "int":
-					rendered = strings.Replace(rendered, "${{"+key+"}}", strconv.Itoa(value.(int)), -1)
+					rendered = strings.Replace(rendered, tagPre+key+tagPost, strconv.Itoa(value.(int)), -1)
 				default:
-					rendered = strings.Replace(rendered, "${{"+key+"}}", value.(string), -1)
+					rendered = strings.Replace(rendered, tagPre+key+tagPost, value.(string), -1)
 				}
 			default:
-				rendered = strings.Replace(rendered, "${{"+key+"}}", value.(string), -1)
+				rendered = strings.Replace(rendered, tagPre+key+tagPost, value.(string), -1)
 			}
 		}
 	}
-	var localizeTag string = "${{localize:"
+	//Replace ${{localize:}} tags with localized values
 	for {
 		if i := strings.Index(rendered, localizeTag); i > -1 {
-			word := rendered[i+12 : i+strings.Index(rendered[i:], "}}")]
-			translated := tm.Translate(word, locale)
-
-			break
+			word := rendered[i+12 : i+strings.Index(rendered[i:], tagPost)]
+			isUpperCase, _ := regexp.MatchString("[A-Z]", word[:1])
+			translated := tm.Translate(strings.ToLower(word), locale)
+			if isUpperCase {
+				translated = strings.ToUpper(translated[:1]) + translated[1:]
+			}
+			rendered = strings.Replace(rendered, localizeTag+word+tagPost, translated, -1)
 		} else {
 			break
 		}
 	}
-	//TODO: remove unused tags ${}
+	//Remove unused tags ${}
+	for {
+		if i := strings.Index(rendered, tagPre); i > -1 {
+			tag := rendered[i : i+strings.Index(rendered[i:], tagPost)+2]
+			if len(tag) < 5 {
+				tag = tagPre
+			}
+			//DEBUG: log.Println("Unused tag:", tag)
+			rendered = strings.Replace(rendered, tag, "", -1)
+		} else {
+			break
+		}
+	}
 	return rendered, nil
 }
 
@@ -122,7 +143,7 @@ func (tm *TemplateManager) Translate(word string, locale string) string {
 func (tm *TemplateManager) GetTemplate(name string) (Template, error) {
 	path := tm.TemplatePath + "/" + name + ".html"
 	if tmpl, ok := tm.Cache[path]; ok {
-		// log.Println("template from cache")
+		//DEBUG log.Println("template from cache")
 		if tmpl.Data == nil {
 			tmpl.Data = make(map[string]interface{})
 		}
@@ -135,6 +156,6 @@ func (tm *TemplateManager) GetTemplate(name string) (Template, error) {
 		return tmpl, err
 	}
 	tmpl.Data = make(map[string]interface{})
-	// log.Println("new template")
+	//DEBUG log.Println("new template")
 	return tmpl, nil
 }
