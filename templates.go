@@ -43,7 +43,7 @@ func (t *Template) Load(path string) error {
 type TemplateManager struct {
 	TemplatePath     string
 	Cache            map[string]Template
-	LocalizationData map[string]map[string]string //TODO: make this variable local only
+	localizationData map[string]map[string]string
 }
 
 //preload templates into cache
@@ -75,18 +75,33 @@ func (tm *TemplateManager) LoadLocalization(path string) error {
 	if err != nil {
 		return err
 	}
-	return json.Unmarshal(bytes, &tm.LocalizationData)
+	return json.Unmarshal(bytes, &tm.localizationData)
 }
 
 //render template, return html
 func (tm *TemplateManager) Render(t *Template, locale string) (string, error) {
 	var rendered string = t.html
+	var arrHtml string = ""
 	if len(t.Data) > 0 {
 		//Replace ${{}} tags with data values
 		for key, value := range t.Data {
 			switch value.(type) {
 			case []interface{}:
-				log.Println("Template array:", key)
+				//TODO: template array
+				tmpl, err := tm.GetTemplate(key)
+				if err == nil {
+					arrHtml = ""
+					for _, v := range value.([]interface{}) {
+						tmpl.Data = v.(map[string]interface{})
+						res, err := tm.Render(&tmpl, locale)
+						if err == nil {
+							arrHtml += res
+						}
+					}
+					rendered = strings.Replace(rendered, tagPre+key+tagPost, arrHtml, -1)
+				} else {
+					log.Println("Template error:", err)
+				}
 			case interface{}:
 				switch reflect.TypeOf(value).Name() {
 				case "int":
@@ -103,11 +118,7 @@ func (tm *TemplateManager) Render(t *Template, locale string) (string, error) {
 	for {
 		if i := strings.Index(rendered, localizeTag); i > -1 {
 			word := rendered[i+12 : i+strings.Index(rendered[i:], tagPost)]
-			isUpperCase, _ := regexp.MatchString("[A-Z]", word[:1])
-			translated := tm.Translate(strings.ToLower(word), locale)
-			if isUpperCase {
-				translated = strings.ToUpper(translated[:1]) + translated[1:]
-			}
+			translated := tm.Translate(word, locale)
 			rendered = strings.Replace(rendered, localizeTag+word+tagPost, translated, -1)
 		} else {
 			break
@@ -131,12 +142,17 @@ func (tm *TemplateManager) Render(t *Template, locale string) (string, error) {
 
 //translate word
 func (tm *TemplateManager) Translate(word string, locale string) string {
-	if _, ok := tm.LocalizationData[locale]; ok {
-		if tr, ok := tm.LocalizationData[locale][word]; ok {
-			return tr
+	var translated string = word
+	isUpperCase, _ := regexp.MatchString("[A-Z]", word[:1])
+	if _, ok := tm.localizationData[locale]; ok {
+		if tr, ok := tm.localizationData[locale][strings.ToLower(word)]; ok {
+			translated = tr
 		}
 	}
-	return word
+	if isUpperCase {
+		translated = strings.ToUpper(translated[:1]) + translated[1:]
+	}
+	return translated
 }
 
 //get template from cache or load template
