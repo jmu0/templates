@@ -86,8 +86,37 @@ func (tm *TemplateManager) Render(t *Template, locale string) (string, error) {
 		//Replace ${{}} tags with data values
 		for key, value := range t.Data {
 			switch value.(type) {
-			case []interface{}:
-				//TODO: template array
+			case []map[string]string: //handle array, recursive
+				tmpl, err := tm.GetTemplate(key)
+				if err == nil {
+					arrHtml = ""
+					for _, v := range value.([]map[string]string) {
+						tmpl.Data = convert(v)
+						res, err := tm.Render(&tmpl, locale)
+						if err == nil {
+							arrHtml += res
+						}
+					}
+					rendered = strings.Replace(rendered, tagPre+key+tagPost, arrHtml, -1)
+				} else {
+					log.Println("Template error:", err)
+				}
+			case []map[string]interface{}: //handle array, recursive
+				tmpl, err := tm.GetTemplate(key)
+				if err == nil {
+					arrHtml = ""
+					for _, v := range value.([]map[string]interface{}) {
+						tmpl.Data = v
+						res, err := tm.Render(&tmpl, locale)
+						if err == nil {
+							arrHtml += res
+						}
+					}
+					rendered = strings.Replace(rendered, tagPre+key+tagPost, arrHtml, -1)
+				} else {
+					log.Println("Template error:", err)
+				}
+			case []interface{}: //handle array, recursive
 				tmpl, err := tm.GetTemplate(key)
 				if err == nil {
 					arrHtml = ""
@@ -138,6 +167,14 @@ func (tm *TemplateManager) Render(t *Template, locale string) (string, error) {
 		}
 	}
 	return rendered, nil
+}
+
+func convert(from map[string]string) map[string]interface{} {
+	ret := make(map[string]interface{})
+	for key, value := range from {
+		ret[key] = value
+	}
+	return ret
 }
 
 //translate word
