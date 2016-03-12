@@ -2,8 +2,9 @@ package templates
 
 import (
 	// "fmt"
-	"encoding/json"
+	// "encoding/json"
 	"errors"
+	"horto-meo/model/query"
 	"io/ioutil"
 	"log"
 	"reflect"
@@ -43,7 +44,12 @@ func (t *Template) Load(path string) error {
 type TemplateManager struct {
 	TemplatePath     string
 	Cache            map[string]Template
-	localizationData map[string]map[string]string
+	LocalizationData []map[string]interface{}
+}
+
+//set template path, use when not caching
+func (tm *TemplateManager) SetTemplatePath(tp string) {
+	tm.TemplatePath = tp
 }
 
 //preload templates into cache
@@ -70,12 +76,13 @@ func (tm *TemplateManager) Preload(path string) {
 }
 
 //load localization strings from json file
-func (tm *TemplateManager) LoadLocalization(path string) error {
-	bytes, err := ioutil.ReadFile(path)
+func (tm *TemplateManager) LoadLocalization() error {
+	var err error
+	tm.LocalizationData, err = query.GetLocalizationData()
 	if err != nil {
 		return err
 	}
-	return json.Unmarshal(bytes, &tm.localizationData)
+	return nil
 }
 
 //render template, return html
@@ -148,6 +155,7 @@ func (tm *TemplateManager) Render(t *Template, locale string) (string, error) {
 		if i := strings.Index(rendered, localizeTag); i > -1 {
 			word := rendered[i+12 : i+strings.Index(rendered[i:], tagPost)]
 			translated := tm.Translate(word, locale)
+			//DEBUGlog.Println("template render: word:", word, "translated:", translated, "locale:", locale)
 			rendered = strings.Replace(rendered, localizeTag+word+tagPost, translated, -1)
 		} else {
 			break
@@ -181,13 +189,14 @@ func convert(from map[string]string) map[string]interface{} {
 func (tm *TemplateManager) Translate(word string, locale string) string {
 	var translated string = word
 	isUpperCase, _ := regexp.MatchString("[A-Z]", word[:1])
-	if _, ok := tm.localizationData[locale]; ok {
-		if tr, ok := tm.localizationData[locale][strings.ToLower(word)]; ok {
-			translated = tr
+	for _, tr := range tm.LocalizationData {
+		if tr["Locale"] == locale && tr["Word"] == word {
+			translated = tr["Translation"].(string)
+			if isUpperCase {
+				translated = strings.ToUpper(translated[:1]) + translated[1:]
+			}
+			return translated
 		}
-	}
-	if isUpperCase {
-		translated = strings.ToUpper(translated[:1]) + translated[1:]
 	}
 	return translated
 }
