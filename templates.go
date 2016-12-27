@@ -146,6 +146,9 @@ func (tm *TemplateManager) Render(t *Template, locale string) (string, error) {
 					rendered = strings.Replace(rendered, tagPre+key+tagPost, value.(string), -1)
 				}
 			default:
+				if value == nil {
+					value = ""
+				}
 				rendered = strings.Replace(rendered, tagPre+key+tagPost, value.(string), -1)
 			}
 		}
