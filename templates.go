@@ -4,7 +4,7 @@ import (
 	// "fmt"
 	// "encoding/json"
 	"errors"
-	"horto-meo/model/query"
+	// "horto-meo/model/query"
 	"io/ioutil"
 	"log"
 	"reflect"
@@ -78,7 +78,7 @@ func (tm *TemplateManager) Preload(path string) {
 //load localization strings from json file
 func (tm *TemplateManager) LoadLocalization() error {
 	var err error
-	tm.LocalizationData, err = query.GetLocalizationData()
+	// tm.LocalizationData, err = query.GetLocalizationData()
 	if err != nil {
 		return err
 	}
