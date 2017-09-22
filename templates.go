@@ -188,12 +188,13 @@ func convert(from map[string]string) map[string]interface{} {
 	return ret
 }
 
-//translate word
+//Translate translate word
 func (tm *TemplateManager) Translate(word string, locale string) string {
-	var translated string = word
+	var translated = word
 	isUpperCase, _ := regexp.MatchString("[A-Z]", word[:1])
+	word = strings.ToLower(word)
 	for _, tr := range tm.LocalizationData {
-		if tr["Locale"] == locale && tr["Word"] == word {
+		if tr["Locale"] == locale && strings.ToLower(tr["Word"].(string)) == word {
 			translated = tr["Translation"].(string)
 			if isUpperCase {
 				translated = strings.ToUpper(translated[:1]) + translated[1:]
