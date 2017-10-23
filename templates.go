@@ -58,7 +58,7 @@ func (tm *TemplateManager) Preload(path string) {
 	tm.Cache = make(map[string]Template)
 	files, err := ioutil.ReadDir(path)
 	if err != nil {
-		log.Println(err)
+		log.Println("ERROR: template:", err)
 	} else {
 		for _, f := range files {
 			if f.IsDir() == false {
@@ -142,8 +142,10 @@ func (tm *TemplateManager) Render(t *Template, locale string) (string, error) {
 				switch reflect.TypeOf(value).Name() {
 				case "int":
 					rendered = strings.Replace(rendered, tagPre+key+tagPost, strconv.Itoa(value.(int)), -1)
-				default:
+				case "string":
 					rendered = strings.Replace(rendered, tagPre+key+tagPost, value.(string), -1)
+				default:
+					log.Println("TODO: Handle Template data value:", key, value)
 				}
 			default:
 				if value == nil {
