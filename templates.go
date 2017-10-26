@@ -3,7 +3,9 @@ package templates
 import (
 	// "fmt"
 	// "encoding/json"
+	"encoding/json"
 	"errors"
+	"net/http"
 	// "horto-meo/model/query"
 	"io/ioutil"
 	"log"
@@ -61,7 +63,7 @@ func (tm *TemplateManager) Preload(path string) {
 		log.Println("ERROR: template:", err)
 	} else {
 		for _, f := range files {
-			if f.IsDir() == false {
+			if f.IsDir() == false && f.Name()[:1] != "." {
 				tPath := path + "/" + f.Name()
 				templ := Template{
 					Path: tPath,
@@ -83,6 +85,27 @@ func (tm *TemplateManager) LoadLocalization() error {
 		return err
 	}
 	return nil
+}
+
+//ServeTemplateJSON serves all templates as json
+func (tm *TemplateManager) ServeTemplateJSON(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json; charset=utf8")
+	if len(tm.Cache) == 0 {
+		tm.Preload(tm.TemplatePath)
+	}
+	ret := make(map[string]string)
+	for k, t := range tm.Cache {
+		name := strings.Replace(k, tm.TemplatePath, "", -1) //Removes path from name
+		name = name[1:]                                     //removes leading /
+		name = strings.Replace(name, ".html", "", -1)       //removes .html from name
+		ret[name] = t.html
+	}
+	bytes, err := json.Marshal(ret)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	w.Write(bytes)
 }
 
 //render template, return html
