@@ -108,7 +108,12 @@ func (tm *TemplateManager) ServeTemplateJSON(w http.ResponseWriter, r *http.Requ
 	w.Write(bytes)
 }
 
-//render template, return html
+//ClearCache clears the cache
+func (tm *TemplateManager) ClearCache() {
+	tm.Cache = make(map[string]Template)
+}
+
+//Render template, return html
 func (tm *TemplateManager) Render(t *Template, locale string) (string, error) {
 	var rendered string = t.html
 	var arrHtml string = ""
