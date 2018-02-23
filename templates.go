@@ -6,26 +6,29 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"path/filepath"
 	// "horto-meo/model/query"
 	"io/ioutil"
 	"log"
 	"reflect"
+
 	"regexp"
 	"strconv"
 	"strings"
 )
 
+//Template structure
 type Template struct {
 	Path string
 	html string
 	Data map[string]interface{}
 }
 
-var localizeTag string = "${{localize:"
-var tagPre string = "${{"
-var tagPost string = "}}"
+var localizeTag = "${{localize:"
+var tagPre = "${{"
+var tagPost = "}}"
 
-//load template html
+//Load template html
 func (t *Template) Load(path string) error {
 	var err error
 	var bytes []byte
@@ -43,18 +46,19 @@ func (t *Template) Load(path string) error {
 	return nil
 }
 
+//TemplateManager structure
 type TemplateManager struct {
 	TemplatePath     string
 	Cache            map[string]Template
 	LocalizationData []map[string]interface{}
 }
 
-//set template path, use when not caching
+//SetTemplatePath set template path, use when not caching
 func (tm *TemplateManager) SetTemplatePath(tp string) {
 	tm.TemplatePath = tp
 }
 
-//preload templates into cache
+//Preload templates into cache
 func (tm *TemplateManager) Preload(path string) {
 	tm.TemplatePath = path
 	tm.Cache = make(map[string]Template)
@@ -63,7 +67,8 @@ func (tm *TemplateManager) Preload(path string) {
 		log.Println("ERROR: template:", err)
 	} else {
 		for _, f := range files {
-			if f.IsDir() == false && f.Name()[:1] != "." {
+
+			if f.IsDir() == false && f.Name()[:1] != "." && filepath.Ext(f.Name()) == ".html" {
 				tPath := path + "/" + f.Name()
 				templ := Template{
 					Path: tPath,
@@ -77,7 +82,7 @@ func (tm *TemplateManager) Preload(path string) {
 	}
 }
 
-//load localization strings from json file
+//LoadLocalization load localization strings from json file
 func (tm *TemplateManager) LoadLocalization() error {
 	var err error
 	// tm.LocalizationData, err = query.GetLocalizationData()
@@ -115,8 +120,8 @@ func (tm *TemplateManager) ClearCache() {
 
 //Render template, return html
 func (tm *TemplateManager) Render(t *Template, locale string) (string, error) {
-	var rendered string = t.html
-	var arrHtml string = ""
+	var rendered = t.html
+	var arrHTML string
 	if len(t.Data) > 0 {
 		//Replace ${{}} tags with data values
 		for key, value := range t.Data {
@@ -124,45 +129,48 @@ func (tm *TemplateManager) Render(t *Template, locale string) (string, error) {
 			case []map[string]string: //handle array, recursive
 				tmpl, err := tm.GetTemplate(key)
 				if err == nil {
-					arrHtml = ""
+					arrHTML = ""
 					for _, v := range value.([]map[string]string) {
 						tmpl.Data = convert(v)
-						res, err := tm.Render(&tmpl, locale)
+						var res string
+						res, err = tm.Render(&tmpl, locale)
 						if err == nil {
-							arrHtml += res
+							arrHTML += res
 						}
 					}
-					rendered = strings.Replace(rendered, tagPre+key+tagPost, arrHtml, -1)
+					rendered = strings.Replace(rendered, tagPre+key+tagPost, arrHTML, -1)
 				} else {
 					log.Println("Template error:", err)
 				}
 			case []map[string]interface{}: //handle array, recursive
 				tmpl, err := tm.GetTemplate(key)
 				if err == nil {
-					arrHtml = ""
+					arrHTML = ""
 					for _, v := range value.([]map[string]interface{}) {
 						tmpl.Data = v
-						res, err := tm.Render(&tmpl, locale)
+						var res string
+						res, err = tm.Render(&tmpl, locale)
 						if err == nil {
-							arrHtml += res
+							arrHTML += res
 						}
 					}
-					rendered = strings.Replace(rendered, tagPre+key+tagPost, arrHtml, -1)
+					rendered = strings.Replace(rendered, tagPre+key+tagPost, arrHTML, -1)
 				} else {
 					log.Println("Template error:", err)
 				}
 			case []interface{}: //handle array, recursive
 				tmpl, err := tm.GetTemplate(key)
 				if err == nil {
-					arrHtml = ""
+					arrHTML = ""
 					for _, v := range value.([]interface{}) {
 						tmpl.Data = v.(map[string]interface{})
-						res, err := tm.Render(&tmpl, locale)
+						var res string
+						res, err = tm.Render(&tmpl, locale)
 						if err == nil {
-							arrHtml += res
+							arrHTML += res
 						}
 					}
-					rendered = strings.Replace(rendered, tagPre+key+tagPost, arrHtml, -1)
+					rendered = strings.Replace(rendered, tagPre+key+tagPost, arrHTML, -1)
 				} else {
 					log.Println("Template error:", err)
 				}
@@ -235,7 +243,7 @@ func (tm *TemplateManager) Translate(word string, locale string) string {
 	return translated
 }
 
-//get template from cache or load template
+//GetTemplate get template from cache or load template
 func (tm *TemplateManager) GetTemplate(name string) (Template, error) {
 	path := tm.TemplatePath + "/" + name + ".html"
 	if tmpl, ok := tm.Cache[path]; ok {
