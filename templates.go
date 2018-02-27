@@ -92,6 +92,17 @@ func (tm *TemplateManager) LoadLocalization() error {
 	return nil
 }
 
+//GetLocalizationData gets localization data for Locale
+func (tm *TemplateManager) GetLocalizationData(locale string) []map[string]interface{} {
+	ret := make([]map[string]interface{}, 0)
+	for _, l := range tm.LocalizationData {
+		if l["Locale"].(string) == locale {
+			ret = append(ret, l)
+		}
+	}
+	return ret
+}
+
 //ServeTemplateJSON serves all templates as json
 func (tm *TemplateManager) ServeTemplateJSON(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=utf8")
