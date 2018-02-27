@@ -103,9 +103,8 @@ func (tm *TemplateManager) GetLocalizationData(locale string) []map[string]inter
 	return ret
 }
 
-//ServeTemplateJSON serves all templates as json
-func (tm *TemplateManager) ServeTemplateJSON(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json; charset=utf8")
+//GetTemplates gets templates
+func (tm *TemplateManager) GetTemplates() map[string]string {
 	if len(tm.Cache) == 0 {
 		tm.Preload(tm.TemplatePath)
 	}
@@ -116,7 +115,18 @@ func (tm *TemplateManager) ServeTemplateJSON(w http.ResponseWriter, r *http.Requ
 		name = strings.Replace(name, ".html", "", -1)       //removes .html from name
 		ret[name] = t.html
 	}
-	bytes, err := json.Marshal(ret)
+	return ret
+}
+
+//GetTemplateJSON gets template GetCartJSON
+func (tm *TemplateManager) GetTemplateJSON() ([]byte, error) {
+	return json.Marshal(tm.GetTemplates())
+}
+
+//ServeTemplateJSON serves all templates as json
+func (tm *TemplateManager) ServeTemplateJSON(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json; charset=utf8")
+	bytes, err := tm.GetTemplateJSON()
 	if err != nil {
 		http.NotFound(w, r)
 		return
