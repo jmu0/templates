@@ -82,6 +82,25 @@ func (tm *TemplateManager) Preload(path string) {
 	}
 }
 
+//AddTemplate adds template to cache
+func (tm *TemplateManager) AddTemplate(name, html string) error {
+	path := tm.TemplatePath + "/" + name + ".html"
+	t := Template{
+		Path: path,
+		html: html,
+		Data: make(map[string]interface{}),
+	}
+	if t.html == "" {
+		t.Load(t.Path)
+	}
+	if tm.Cache == nil {
+		tm.Cache = make(map[string]Template)
+	}
+	tm.Cache[path] = t
+	// log.Println("DEBUG:", tm.Cache)
+	return nil
+}
+
 //LoadLocalization load localization strings from json file
 func (tm *TemplateManager) LoadLocalization() error {
 	var err error
