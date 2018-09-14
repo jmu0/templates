@@ -172,7 +172,7 @@ func (tm *TemplateManager) Render(t *Template, locale string) (string, error) {
 				tmpl, err = tm.GetTemplate(key)
 				if err != nil {
 					//try template.key Name
-					newname := strings.Split(t.Path, "/")[len(strings.Split(t.Path, "/"))-1]
+					newname := strings.Replace(strings.Split(t.Path, "/")[len(strings.Split(t.Path, "/"))-1], ".html", "."+key, -1)
 					tmpl, err2 = tm.GetTemplate(newname)
 					if err2 != nil {
 						log.Println("Template error:", err)
@@ -192,7 +192,7 @@ func (tm *TemplateManager) Render(t *Template, locale string) (string, error) {
 				tmpl, err := tm.GetTemplate(key)
 				if err != nil {
 					//try template.key Name
-					newname := strings.Split(t.Path, "/")[len(strings.Split(t.Path, "/"))-1]
+					newname := strings.Replace(strings.Split(t.Path, "/")[len(strings.Split(t.Path, "/"))-1], ".html", "."+key, -1)
 					tmpl, err2 = tm.GetTemplate(newname)
 					if err2 != nil {
 						log.Println("Template error:", err)
@@ -213,7 +213,7 @@ func (tm *TemplateManager) Render(t *Template, locale string) (string, error) {
 				tmpl, err := tm.GetTemplate(key)
 				if err != nil {
 					//try template.key Name
-					newname := strings.Split(t.Path, "/")[len(strings.Split(t.Path, "/"))-1]
+					newname := strings.Replace(strings.Split(t.Path, "/")[len(strings.Split(t.Path, "/"))-1], ".html", "."+key, -1)
 					tmpl, err2 = tm.GetTemplate(newname)
 					if err2 != nil {
 						log.Println("Template error:", err)
