@@ -27,6 +27,7 @@ type Template struct {
 var localizeTag = "${{localize:"
 var tagPre = "${{"
 var tagPost = "}}"
+var aliasList map[string]string
 
 //Load template html
 func (t *Template) Load(path string) error {
@@ -52,6 +53,14 @@ type TemplateManager struct {
 	Cache            map[string]Template
 	LocalizationData []map[string]interface{}
 	Debug            bool
+}
+
+//AddAlias adds alias for templates
+func (tm *TemplateManager) AddAlias(name, alias string) {
+	if aliasList == nil {
+		aliasList = make(map[string]string)
+	}
+	aliasList[name] = alias
 }
 
 //SetTemplatePath set template path, use when not caching
@@ -310,6 +319,20 @@ func (tm *TemplateManager) Translate(word string, locale string) string {
 
 //GetTemplate get template from cache or load template
 func (tm *TemplateManager) GetTemplate(name string) (Template, error) {
+	//check alias
+	if alias, ok := aliasList[name]; ok {
+		aliasPath := tm.TemplatePath + "/" + alias + ".html"
+		if tmpl, ok := tm.Cache[aliasPath]; ok {
+			if tm.Debug {
+				log.Println("DEBUG alias found for", name, "=", aliasPath)
+			}
+			if tmpl.Data == nil {
+				tmpl.Data = make(map[string]interface{})
+			}
+			return tmpl, nil
+		}
+	}
+	//check template
 	path := tm.TemplatePath + "/" + name + ".html"
 	if tmpl, ok := tm.Cache[path]; ok {
 		if tmpl.Data == nil {
@@ -317,6 +340,7 @@ func (tm *TemplateManager) GetTemplate(name string) (Template, error) {
 		}
 		return tmpl, nil
 	}
+	//attempt load template
 	tmpl := Template{}
 	err := tmpl.Load(path)
 	if err != nil {
