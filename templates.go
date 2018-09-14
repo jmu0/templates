@@ -51,6 +51,7 @@ type TemplateManager struct {
 	TemplatePath     string
 	Cache            map[string]Template
 	LocalizationData []map[string]interface{}
+	Debug            bool
 }
 
 //SetTemplatePath set template path, use when not caching
@@ -64,7 +65,9 @@ func (tm *TemplateManager) Preload(path string) {
 	tm.Cache = make(map[string]Template)
 	files, err := ioutil.ReadDir(path)
 	if err != nil {
-		log.Println("ERROR: template:", err)
+		if tm.Debug {
+			log.Println("ERROR: template:", err)
+		}
 	} else {
 		for _, f := range files {
 
@@ -75,7 +78,9 @@ func (tm *TemplateManager) Preload(path string) {
 				}
 				if templ.Load("") == nil {
 					tm.Cache[tPath] = templ
-					log.Println("Preloading:", tPath)
+					if tm.Debug {
+						log.Println("Preloading:", tPath)
+					}
 				}
 			}
 		}
@@ -97,7 +102,6 @@ func (tm *TemplateManager) AddTemplate(name, html string) error {
 		tm.Cache = make(map[string]Template)
 	}
 	tm.Cache[path] = t
-	// log.Println("DEBUG:", tm.Cache)
 	return nil
 }
 
@@ -175,7 +179,9 @@ func (tm *TemplateManager) Render(t *Template, locale string) (string, error) {
 					newname := strings.Replace(strings.Split(t.Path, "/")[len(strings.Split(t.Path, "/"))-1], ".html", "."+key, -1)
 					tmpl, err2 = tm.GetTemplate(newname)
 					if err2 != nil {
-						log.Println("Template error:", err)
+						if tm.Debug {
+							log.Println("Template error:", err)
+						}
 					}
 				}
 				arrHTML = ""
@@ -195,7 +201,9 @@ func (tm *TemplateManager) Render(t *Template, locale string) (string, error) {
 					newname := strings.Replace(strings.Split(t.Path, "/")[len(strings.Split(t.Path, "/"))-1], ".html", "."+key, -1)
 					tmpl, err2 = tm.GetTemplate(newname)
 					if err2 != nil {
-						log.Println("Template error:", err)
+						if tm.Debug {
+							log.Println("Template error:", err)
+						}
 					}
 				}
 				arrHTML = ""
@@ -216,7 +224,9 @@ func (tm *TemplateManager) Render(t *Template, locale string) (string, error) {
 					newname := strings.Replace(strings.Split(t.Path, "/")[len(strings.Split(t.Path, "/"))-1], ".html", "."+key, -1)
 					tmpl, err2 = tm.GetTemplate(newname)
 					if err2 != nil {
-						log.Println("Template error:", err)
+						if tm.Debug {
+							log.Println("Template error:", err)
+						}
 					}
 				}
 				arrHTML = ""
@@ -236,7 +246,9 @@ func (tm *TemplateManager) Render(t *Template, locale string) (string, error) {
 				case "string":
 					rendered = strings.Replace(rendered, tagPre+key+tagPost, value.(string), -1)
 				default:
-					log.Println("TODO: Handle Template data value:", key, value)
+					if tm.Debug {
+						log.Println("TODO: Handle Template data value:", key, value)
+					}
 				}
 			default:
 				if value == nil {
@@ -251,7 +263,6 @@ func (tm *TemplateManager) Render(t *Template, locale string) (string, error) {
 		if i := strings.Index(rendered, localizeTag); i > -1 {
 			word := rendered[i+12 : i+strings.Index(rendered[i:], tagPost)]
 			translated := tm.Translate(word, locale)
-			//DEBUGlog.Println("template render: word:", word, "translated:", translated, "locale:", locale)
 			rendered = strings.Replace(rendered, localizeTag+word+tagPost, translated, -1)
 		} else {
 			break
@@ -264,7 +275,6 @@ func (tm *TemplateManager) Render(t *Template, locale string) (string, error) {
 			if len(tag) < 5 {
 				tag = tagPre
 			}
-			//DEBUG: log.Println("Unused tag:", tag)
 			rendered = strings.Replace(rendered, tag, "", -1)
 		} else {
 			break
@@ -302,7 +312,6 @@ func (tm *TemplateManager) Translate(word string, locale string) string {
 func (tm *TemplateManager) GetTemplate(name string) (Template, error) {
 	path := tm.TemplatePath + "/" + name + ".html"
 	if tmpl, ok := tm.Cache[path]; ok {
-		//DEBUG log.Println("template from cache")
 		if tmpl.Data == nil {
 			tmpl.Data = make(map[string]interface{})
 		}
@@ -311,10 +320,8 @@ func (tm *TemplateManager) GetTemplate(name string) (Template, error) {
 	tmpl := Template{}
 	err := tmpl.Load(path)
 	if err != nil {
-		//DEBUG: log.Println("no template:", err)
 		return tmpl, err
 	}
 	tmpl.Data = make(map[string]interface{})
-	//DEBUG log.Println("new template")
 	return tmpl, nil
 }
