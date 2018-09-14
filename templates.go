@@ -162,58 +162,73 @@ func (tm *TemplateManager) ClearCache() {
 func (tm *TemplateManager) Render(t *Template, locale string) (string, error) {
 	var rendered = t.html
 	var arrHTML string
+	var err, err2 error
+	var tmpl Template
 	if len(t.Data) > 0 {
 		//Replace ${{}} tags with data values
 		for key, value := range t.Data {
 			switch value.(type) {
 			case []map[string]string: //handle array, recursive
-				tmpl, err := tm.GetTemplate(key)
-				if err == nil {
-					arrHTML = ""
-					for _, v := range value.([]map[string]string) {
-						tmpl.Data = convert(v)
-						var res string
-						res, err = tm.Render(&tmpl, locale)
-						if err == nil {
-							arrHTML += res
-						}
+				tmpl, err = tm.GetTemplate(key)
+				if err != nil {
+					//try template.key Name
+					newname := strings.Split(t.Path, "/")[len(strings.Split(t.Path, "/"))-1]
+					tmpl, err2 = tm.GetTemplate(newname)
+					if err2 != nil {
+						log.Println("Template error:", err)
 					}
-					rendered = strings.Replace(rendered, tagPre+key+tagPost, arrHTML, -1)
-				} else {
-					log.Println("Template error:", err)
 				}
+				arrHTML = ""
+				for _, v := range value.([]map[string]string) {
+					tmpl.Data = convert(v)
+					var res string
+					res, err = tm.Render(&tmpl, locale)
+					if err == nil {
+						arrHTML += res
+					}
+				}
+				rendered = strings.Replace(rendered, tagPre+key+tagPost, arrHTML, -1)
 			case []map[string]interface{}: //handle array, recursive
 				tmpl, err := tm.GetTemplate(key)
-				if err == nil {
-					arrHTML = ""
-					for _, v := range value.([]map[string]interface{}) {
-						tmpl.Data = v
-						var res string
-						res, err = tm.Render(&tmpl, locale)
-						if err == nil {
-							arrHTML += res
-						}
+				if err != nil {
+					//try template.key Name
+					newname := strings.Split(t.Path, "/")[len(strings.Split(t.Path, "/"))-1]
+					tmpl, err2 = tm.GetTemplate(newname)
+					if err2 != nil {
+						log.Println("Template error:", err)
 					}
-					rendered = strings.Replace(rendered, tagPre+key+tagPost, arrHTML, -1)
-				} else {
-					log.Println("Template error:", err)
 				}
+				arrHTML = ""
+				for _, v := range value.([]map[string]interface{}) {
+					tmpl.Data = v
+					var res string
+					res, err = tm.Render(&tmpl, locale)
+					if err == nil {
+						arrHTML += res
+					}
+				}
+				rendered = strings.Replace(rendered, tagPre+key+tagPost, arrHTML, -1)
+
 			case []interface{}: //handle array, recursive
 				tmpl, err := tm.GetTemplate(key)
-				if err == nil {
-					arrHTML = ""
-					for _, v := range value.([]interface{}) {
-						tmpl.Data = v.(map[string]interface{})
-						var res string
-						res, err = tm.Render(&tmpl, locale)
-						if err == nil {
-							arrHTML += res
-						}
+				if err != nil {
+					//try template.key Name
+					newname := strings.Split(t.Path, "/")[len(strings.Split(t.Path, "/"))-1]
+					tmpl, err2 = tm.GetTemplate(newname)
+					if err2 != nil {
+						log.Println("Template error:", err)
 					}
-					rendered = strings.Replace(rendered, tagPre+key+tagPost, arrHTML, -1)
-				} else {
-					log.Println("Template error:", err)
 				}
+				arrHTML = ""
+				for _, v := range value.([]interface{}) {
+					tmpl.Data = v.(map[string]interface{})
+					var res string
+					res, err = tm.Render(&tmpl, locale)
+					if err == nil {
+						arrHTML += res
+					}
+				}
+				rendered = strings.Replace(rendered, tagPre+key+tagPost, arrHTML, -1)
 			case interface{}:
 				switch reflect.TypeOf(value).Name() {
 				case "int":
