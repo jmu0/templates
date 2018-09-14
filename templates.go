@@ -311,7 +311,7 @@ func (tm *TemplateManager) GetTemplate(name string) (Template, error) {
 	tmpl := Template{}
 	err := tmpl.Load(path)
 	if err != nil {
-		log.Println("no template:", err)
+		//DEBUG: log.Println("no template:", err)
 		return tmpl, err
 	}
 	tmpl.Data = make(map[string]interface{})
