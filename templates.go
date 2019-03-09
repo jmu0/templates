@@ -7,6 +7,7 @@ import (
 	"errors"
 	"net/http"
 	"path/filepath"
+
 	// "horto-meo/model/query"
 	"io/ioutil"
 	"log"
@@ -20,7 +21,7 @@ import (
 //Template structure
 type Template struct {
 	Path string
-	html string
+	HTML string
 	Data map[string]interface{}
 }
 
@@ -43,7 +44,7 @@ func (t *Template) Load(path string) error {
 	if err != nil {
 		return err
 	}
-	t.html = string(bytes)
+	t.HTML = string(bytes)
 	return nil
 }
 
@@ -101,10 +102,10 @@ func (tm *TemplateManager) AddTemplate(name, html string) error {
 	path := tm.TemplatePath + "/" + name + ".html"
 	t := Template{
 		Path: path,
-		html: html,
+		HTML: html,
 		Data: make(map[string]interface{}),
 	}
-	if t.html == "" {
+	if t.HTML == "" {
 		t.Load(t.Path)
 	}
 	if tm.Cache == nil {
@@ -145,7 +146,7 @@ func (tm *TemplateManager) GetTemplates() map[string]string {
 		name := strings.Replace(k, tm.TemplatePath, "", -1) //Removes path from name
 		name = name[1:]                                     //removes leading /
 		name = strings.Replace(name, ".html", "", -1)       //removes .html from name
-		ret[name] = t.html
+		ret[name] = t.HTML
 	}
 	return ret
 }
@@ -173,7 +174,7 @@ func (tm *TemplateManager) ClearCache() {
 
 //Render template, return html
 func (tm *TemplateManager) Render(t *Template, locale string) (string, error) {
-	var rendered = t.html
+	var rendered = t.HTML
 	var arrHTML string
 	var err, err2 error
 	var tmpl Template
