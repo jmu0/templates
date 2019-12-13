@@ -51,7 +51,7 @@ func (t *Template) Load(path string) error {
 //TemplateManager structure
 type TemplateManager struct {
 	TemplatePath     string
-	Cache            map[string]Template
+	Cache            map[string]*Template
 	LocalizationData []map[string]interface{}
 	Debug            bool
 }
@@ -72,7 +72,7 @@ func (tm *TemplateManager) SetTemplatePath(tp string) {
 //Preload templates into cache
 func (tm *TemplateManager) Preload(path string) {
 	tm.TemplatePath = path
-	tm.Cache = make(map[string]Template)
+	tm.Cache = make(map[string]*Template)
 	files, err := ioutil.ReadDir(path)
 	if err != nil {
 		if tm.Debug {
@@ -87,7 +87,7 @@ func (tm *TemplateManager) Preload(path string) {
 					Path: tPath,
 				}
 				if templ.Load("") == nil {
-					tm.Cache[tPath] = templ
+					tm.Cache[tPath] = &templ
 					if tm.Debug {
 						log.Println("Preloading:", tPath)
 					}
@@ -109,9 +109,9 @@ func (tm *TemplateManager) AddTemplate(name, html string) error {
 		t.Load(t.Path)
 	}
 	if tm.Cache == nil {
-		tm.Cache = make(map[string]Template)
+		tm.Cache = make(map[string]*Template)
 	}
-	tm.Cache[path] = t
+	tm.Cache[path] = &t
 	return nil
 }
 
@@ -169,7 +169,7 @@ func (tm *TemplateManager) ServeTemplateJSON(w http.ResponseWriter, r *http.Requ
 
 //ClearCache clears the cache
 func (tm *TemplateManager) ClearCache() {
-	tm.Cache = make(map[string]Template)
+	tm.Cache = make(map[string]*Template)
 }
 
 //Render template, return html
@@ -330,7 +330,7 @@ func (tm *TemplateManager) GetTemplate(name string) (Template, error) {
 			if tmpl.Data == nil {
 				tmpl.Data = make(map[string]interface{})
 			}
-			return tmpl, nil
+			return *tmpl, nil
 		}
 	}
 	//check template
@@ -339,7 +339,7 @@ func (tm *TemplateManager) GetTemplate(name string) (Template, error) {
 		if tmpl.Data == nil {
 			tmpl.Data = make(map[string]interface{})
 		}
-		return tmpl, nil
+		return *tmpl, nil
 	}
 	//attempt load template
 	tmpl := Template{}
