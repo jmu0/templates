@@ -177,7 +177,7 @@ func (tm *TemplateManager) Render(t *Template, locale string) (string, error) {
 	var rendered = t.HTML
 	var arrHTML string
 	var err, err2 error
-	var tmpl Template
+	var tmpl *Template
 	if len(t.Data) > 0 {
 		//Replace ${{}} tags with data values
 		for key, value := range t.Data {
@@ -198,7 +198,7 @@ func (tm *TemplateManager) Render(t *Template, locale string) (string, error) {
 				for _, v := range value.([]map[string]string) {
 					tmpl.Data = convert(v)
 					var res string
-					res, err = tm.Render(&tmpl, locale)
+					res, err = tm.Render(tmpl, locale)
 					if err == nil {
 						arrHTML += res
 					}
@@ -220,7 +220,7 @@ func (tm *TemplateManager) Render(t *Template, locale string) (string, error) {
 				for _, v := range value.([]map[string]interface{}) {
 					tmpl.Data = v
 					var res string
-					res, err = tm.Render(&tmpl, locale)
+					res, err = tm.Render(tmpl, locale)
 					if err == nil {
 						arrHTML += res
 					}
@@ -243,7 +243,7 @@ func (tm *TemplateManager) Render(t *Template, locale string) (string, error) {
 				for _, v := range value.([]interface{}) {
 					tmpl.Data = v.(map[string]interface{})
 					var res string
-					res, err = tm.Render(&tmpl, locale)
+					res, err = tm.Render(tmpl, locale)
 					if err == nil {
 						arrHTML += res
 					}
@@ -319,7 +319,7 @@ func (tm *TemplateManager) Translate(word string, locale string) string {
 }
 
 //GetTemplate get template from cache or load template
-func (tm *TemplateManager) GetTemplate(name string) (Template, error) {
+func (tm *TemplateManager) GetTemplate(name string) (*Template, error) {
 	//check alias
 	if alias, ok := aliasList[name]; ok {
 		aliasPath := tm.TemplatePath + "/" + alias + ".html"
@@ -330,7 +330,7 @@ func (tm *TemplateManager) GetTemplate(name string) (Template, error) {
 			if tmpl.Data == nil {
 				tmpl.Data = make(map[string]interface{})
 			}
-			return *tmpl, nil
+			return tmpl, nil
 		}
 	}
 	//check template
@@ -339,14 +339,14 @@ func (tm *TemplateManager) GetTemplate(name string) (Template, error) {
 		if tmpl.Data == nil {
 			tmpl.Data = make(map[string]interface{})
 		}
-		return *tmpl, nil
+		return tmpl, nil
 	}
 	//attempt load template
 	tmpl := Template{}
 	err := tmpl.Load(path)
 	if err != nil {
-		return tmpl, err
+		return &tmpl, err
 	}
 	tmpl.Data = make(map[string]interface{})
-	return tmpl, nil
+	return &tmpl, nil
 }
