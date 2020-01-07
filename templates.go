@@ -218,12 +218,22 @@ func (tm *TemplateManager) Render(t *Template, locale string) (string, error) {
 				}
 				arrHTML = ""
 				for _, v := range value.([]map[string]interface{}) {
+					if tm.Debug {
+						log.Println("DEBUG template array value:", v)
+					}
 					tmpl.Data = v
 					var res string
 					res, err = tm.Render(tmpl, locale)
 					if err == nil {
 						arrHTML += res
+					} else {
+						if tm.Debug {
+							log.Println("DEBUG: template array error:", err)
+						}
 					}
+				}
+				if tm.Debug {
+					log.Println("DEBUG array key/html:", key, arrHTML)
 				}
 				rendered = strings.Replace(rendered, tagPre+key+tagPost, arrHTML, -1)
 
@@ -320,18 +330,15 @@ func (tm *TemplateManager) Translate(word string, locale string) string {
 
 //GetTemplate get template from cache or load template
 func (tm *TemplateManager) GetTemplate(name string) (*Template, error) {
+	if tm.Debug {
+		log.Println("DEBUG looking for template:", name)
+	}
 	//check alias
 	if alias, ok := aliasList[name]; ok {
-		aliasPath := tm.TemplatePath + "/" + alias + ".html"
-		if tmpl, ok := tm.Cache[aliasPath]; ok {
-			if tm.Debug {
-				log.Println("DEBUG alias found for", name, "=", aliasPath)
-			}
-			if tmpl.Data == nil {
-				tmpl.Data = make(map[string]interface{})
-			}
-			return tmpl, nil
+		if tm.Debug {
+			log.Println("DEBUG alias found for", name, "=", alias)
 		}
+		name = alias
 	}
 	//check template
 	path := tm.TemplatePath + "/" + name + ".html"
@@ -339,14 +346,23 @@ func (tm *TemplateManager) GetTemplate(name string) (*Template, error) {
 		if tmpl.Data == nil {
 			tmpl.Data = make(map[string]interface{})
 		}
+		if tm.Debug {
+			log.Println("DEBUG template from cache:", path)
+		}
 		return tmpl, nil
 	}
 	//attempt load template
 	tmpl := Template{}
 	err := tmpl.Load(path)
 	if err != nil {
+		if tm.Debug {
+			log.Println("DEBUG template error:", err)
+		}
 		return &tmpl, err
 	}
 	tmpl.Data = make(map[string]interface{})
+	if tm.Debug {
+		log.Println("DEBUG found template:", path, tmpl)
+	}
 	return &tmpl, nil
 }
